@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.cmtdevsolutions.iam")
 @EnableJpaRepositories(basePackages = "com.cmtdevsolutions.iam.common.repository")
 @EntityScan(basePackages = "com.cmtdevsolutions.iam.common.entity")
 public class AuthServerApplication {

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Tenant Permission Hub — IAM Modular (Fases 1-5)",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "client", "type": "external", "label": "Admin / SPA", "sublabel": "TENANT_ADMIN · SUPER_ADMIN", "pos": [30, 260], "size": [130, 64] },
+    { "id": "auth", "type": "backend", "label": "Auth Server :9000", "sublabel": "Spring Authorization Server", "pos": [230, 110], "size": [150, 66] },
+    { "id": "resource", "type": "backend", "label": "Resource Server :8080", "sublabel": "REST + Security", "pos": [230, 260], "size": [150, 66] },
+    { "id": "common", "type": "backend", "label": "iam-common", "sublabel": "10 Entities · Repos · Services", "pos": [230, 410], "size": [150, 66] },
+    { "id": "filter", "type": "security", "label": "TenantContextFilter", "sublabel": "JWT → tenant_id", "pos": [470, 260], "size": [150, 66] },
+    { "id": "validation", "type": "security", "label": "PermissionValidation", "sublabel": "Anti-escalación + Aislamiento", "pos": [470, 410], "size": [155, 66] },
+    { "id": "cache", "type": "database", "label": "Redis 7", "sublabel": "eff_perms TTL 10m", "pos": [710, 150], "size": [135, 64] },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL 16", "sublabel": "Flyway V1-V4 · RLS · Triggers", "pos": [710, 310], "size": [145, 70] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Docker Compose", "wraps": ["auth", "resource", "common", "filter", "validation", "cache", "postgres"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "client", "to": "auth", "label": "OAuth2 token", "labelAt": [140, 210] },
+    { "id": "c2", "from": "client", "to": "resource", "label": "Bearer JWT", "labelAt": [140, 340] },
+    { "id": "c3", "from": "auth", "to": "postgres", "label": "JPA", "via": [[380, 100], [860, 100], [860, 345]], "labelAt": [620, 90] },
+    { "id": "c4", "from": "resource", "to": "filter", "label": "JWT" },
+    { "id": "c5", "from": "filter", "to": "validation", "label": "tenantId", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c6", "from": "validation", "to": "postgres", "label": "UNION + SET LOCAL", "labelAt": [560, 490] },
+    { "id": "c7", "from": "validation", "to": "cache", "label": "GET/EVICT", "via": [[640, 443], [640, 182]], "labelAt": [520, 60] },
+    { "id": "c9", "from": "resource", "to": "cache", "label": "HIT/MISS", "via": [[380, 240], [610, 240], [610, 182]], "labelAt": [500, 250] }
+  ]
+}
