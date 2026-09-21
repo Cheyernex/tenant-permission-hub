@@ -2,10 +2,13 @@ package com.cmtdevsolutions.iam.common.service;
 
 import com.cmtdevsolutions.iam.common.dto.UsuarioRequest;
 import com.cmtdevsolutions.iam.common.dto.UsuarioResponse;
+import com.cmtdevsolutions.iam.common.entity.Tenant;
 import com.cmtdevsolutions.iam.common.entity.Usuario;
 import com.cmtdevsolutions.iam.common.exception.ResourceNotFoundException;
 import com.cmtdevsolutions.iam.common.exception.TenantIsolationException;
+import com.cmtdevsolutions.iam.common.repository.TenantRepository;
 import com.cmtdevsolutions.iam.common.repository.UsuarioRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,16 +25,20 @@ import java.util.stream.Collectors;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EntityManager entityManager;
 
     @Transactional
     public UsuarioResponse crear(Long tenantId, UsuarioRequest request) {
         if (usuarioRepository.existsByTenantIdAndEmail(tenantId, request.getEmail())) {
             throw new IllegalArgumentException("Ya existe un usuario con el email: " + request.getEmail() + " en este tenant");
         }
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant no encontrado: " + tenantId));
 
         Usuario usuario = Usuario.builder()
-                .tenant(null) // Se setea en el controller con tenant del contexto
+                .tenant(tenant)
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .nombre(request.getNombre())
