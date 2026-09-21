@@ -43,8 +43,13 @@ services:
       SPRING_DATASOURCE_PASSWORD: iam_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_FLYWAY_ENABLED: "false"
+      SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER_URI: http://auth-server:9000
+      SPRING_DATA_REDIS_HOST: redis
+      MANAGEMENT_HEALTH_REDIS_ENABLED: "false"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:9000/actuator/health"]
@@ -67,10 +72,14 @@ services:
       SPRING_DATASOURCE_PASSWORD: iam_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_FLYWAY_ENABLED: "false"
+      SPRING_DATA_REDIS_HOST: redis
+      MANAGEMENT_HEALTH_REDIS_ENABLED: "false"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://auth-server:9000
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://auth-server:9000/oauth2/jwks
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       auth-server:
         condition: service_healthy
