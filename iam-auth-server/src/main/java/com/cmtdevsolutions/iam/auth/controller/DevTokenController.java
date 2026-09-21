@@ -5,6 +5,7 @@ import com.cmtdevsolutions.iam.common.entity.Usuario;
 import com.cmtdevsolutions.iam.common.repository.UsuarioRepository;
 import com.cmtdevsolutions.iam.common.service.PermissionCacheService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.*;
@@ -24,6 +25,9 @@ public class DevTokenController {
     private final PermissionCacheService permissionCacheService;
     private final JwtEncoder jwtEncoder;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${spring.security.oauth2.authorizationserver.issuer-uri:http://localhost:9000}")
+    private String issuerUri;
 
     public record DevLoginRequest(String email, String password, String tenantCodigo, String role) {}
     public record DevTokenResponse(String access_token, String token_type, long expires_in, Map<String,Object> claims) {}
@@ -53,11 +57,10 @@ public class DevTokenController {
             userId = u.getId();
             email = u.getEmail();
             nombre = u.getNombre();
-            // Rol: respeta el solicitado si es SUPER_ADMIN y el usuario es admin, si no usa el real
+            // Rol: respeta el solicitado si no es vacío, si no usa el real (system+esAdmin => SUPER_ADMIN)
             if (req.role() != null && !req.role().isBlank()) {
                 roles = List.of(req.role());
             } else {
-                // system tenant + esAdmin => SUPER_ADMIN, otro => TENANT_ADMIN
                 boolean isSystem = "system".equalsIgnoreCase(u.getTenant().getCodigo());
                 roles = (u.getEsAdmin() && isSystem) ? List.of("SUPER_ADMIN") : (u.getEsAdmin() ? List.of("TENANT_ADMIN") : List.of("USER"));
             }
@@ -80,7 +83,7 @@ public class DevTokenController {
         Instant now = Instant.now();
         long expiresIn = 1800;
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("http://localhost:9000")
+                .issuer(issuerUri)
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expiresIn))
                 .subject(String.valueOf(userId))
