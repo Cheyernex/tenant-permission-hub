@@ -49,6 +49,11 @@
   padding: 0;
 }
 
+::selection {
+  background: rgba(99, 102, 241, 0.35);
+  color: #ffffff;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg);
@@ -793,6 +798,8 @@ code {
 }
 
 /* FORM CONTROLS */
+input,
+select,
 .input-control,
 .toolbar input,
 .inline-form input,
@@ -809,6 +816,8 @@ label select {
   transition: all 0.15s ease;
 }
 
+input:focus,
+select:focus,
 .toolbar input:focus,
 .inline-form input:focus,
 label input:focus,
@@ -818,10 +827,20 @@ label select:focus {
   background: rgba(15, 23, 42, 1);
 }
 
+input::placeholder,
 .toolbar input::placeholder,
 .inline-form input::placeholder {
   color: var(--text-muted);
   font-size: 13px;
+}
+
+select {
+  cursor: pointer;
+}
+
+select option {
+  background: #111827;
+  color: #f8fafc;
 }
 
 .toolbar {
@@ -845,7 +864,7 @@ label select:focus {
 }
 
 /* ==========================================================================
-   USERS & PERMISSION MATRIX PAGE (CRITICAL REDESIGN)
+   USERS & PERMISSION MATRIX PAGE
    ========================================================================== */
 
 .split {
@@ -877,6 +896,7 @@ label select:focus {
   gap: 12px;
   transition: all 0.18s ease;
   position: relative;
+  font-family: inherit;
 }
 
 .user-card-item:hover {
@@ -1092,6 +1112,7 @@ label select:focus {
   color: var(--text-muted);
   transition: all 0.15s ease;
   user-select: none;
+  font-family: inherit;
 }
 
 .perm-pill:hover {
@@ -1100,7 +1121,6 @@ label select:focus {
   color: var(--text-sub);
 }
 
-/* Direct Permission Active */
 .perm-pill.direct {
   background: rgba(99, 102, 241, 0.18);
   border-color: rgba(99, 102, 241, 0.45);
@@ -1109,7 +1129,6 @@ label select:focus {
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
 }
 
-/* Inherited via Template */
 .perm-pill.inherited {
   background: rgba(245, 158, 11, 0.15);
   border-color: rgba(245, 158, 11, 0.4);
@@ -1361,13 +1380,13 @@ label select:focus {
     radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
     radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
     var(--bg);
-  padding: 20px;
+  padding: 24px;
 }
 
 .login-card {
   width: 100%;
-  max-width: 440px;
-  background: rgba(15, 23, 42, 0.8);
+  max-width: 460px;
+  background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1386,7 +1405,7 @@ label select:focus {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .login-brand-icon {
@@ -1401,45 +1420,10 @@ label select:focus {
 }
 
 .login-card h1 {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: #ffffff;
   margin: 0;
-}
-
-.login-card label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 14px 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-sub);
-}
-
-.quick-users {
-  display: flex;
-  gap: 6px;
-  margin: 12px 0 16px 0;
-}
-
-.quick-user-btn {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 6px;
-  font-size: 11px;
-  color: var(--text-sub);
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.15s ease;
-}
-
-.quick-user-btn:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: #ffffff;
 }
 
 /* ==========================================================================

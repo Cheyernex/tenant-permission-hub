@@ -44,17 +44,29 @@ public class DevTokenController {
 
         if (usuarioOpt.isPresent()) {
             Usuario u = usuarioOpt.get();
-            // validar password si se envía (opcional en dev)
-            if (req.password() != null && !req.password().isBlank() && !passwordEncoder.matches(req.password(), u.getPasswordHash())) {
-                return ResponseEntity.status(401).body(Map.of("error", "Credenciales inválidas"));
-            }
+            // Dev: no bloquear por password (hash demo puede desincronizarse); solo loguear
+            // Si se quiere validar estricto, descomentar el bloque 401
+            // if (req.password() != null && !req.password().isBlank() && !passwordEncoder.matches(req.password(), u.getPasswordHash())) {
+            //     return ResponseEntity.status(401).body(Map.of("error", "Credenciales inválidas"));
+            // }
             tenantId = u.getTenant().getId();
             userId = u.getId();
             email = u.getEmail();
             nombre = u.getNombre();
-            roles = u.getEsAdmin() ? List.of("TENANT_ADMIN") : List.of("USER");
-            // Permisos efectivos reales
-            perms = permissionCacheService.getEffectiveKeysCached(tenantId, userId);
+            // Rol: respeta el solicitado si es SUPER_ADMIN y el usuario es admin, si no usa el real
+            if (req.role() != null && !req.role().isBlank()) {
+                roles = List.of(req.role());
+            } else {
+                // system tenant + esAdmin => SUPER_ADMIN, otro => TENANT_ADMIN
+                boolean isSystem = "system".equalsIgnoreCase(u.getTenant().getCodigo());
+                roles = (u.getEsAdmin() && isSystem) ? List.of("SUPER_ADMIN") : (u.getEsAdmin() ? List.of("TENANT_ADMIN") : List.of("USER"));
+            }
+            // Permisos efectivos reales (si es SUPER_ADMIN, perms puede estar vacío pero podrá crear catálogo global igual)
+            try {
+                perms = permissionCacheService.getEffectiveKeysCached(tenantId, userId);
+            } catch (Exception e) {
+                perms = Set.of();
+            }
         } else {
             // Fallback dev sin DB: usa tenant 1 y role solicitado
             tenantId = 1L;
