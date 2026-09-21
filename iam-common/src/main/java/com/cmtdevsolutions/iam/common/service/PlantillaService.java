@@ -51,10 +51,10 @@ public class PlantillaService {
         if (plantillaRepository.existsByTenantIdAndNombre(adminTenantId, request.getNombre())) {
             throw new IllegalArgumentException("Ya existe una plantilla con nombre '" + request.getNombre() + "' en este tenant");
         }
-        // Anti-escalación sobre los permisos de la plantilla
+        // Anti-escalación + catálogo asignado por Super Admin + existencia en catálogo global
         if (request.getPermisoIds() != null && !request.getPermisoIds().isEmpty()) {
+            validarCatalogoTenant(adminTenantId, request.getPermisoIds());
             validationService.validarAntiEscalacion(adminUserId, request.getPermisoIds());
-            // validar catálogo
             List<Permiso> permisos = permisoRepository.findAllById(request.getPermisoIds());
             if (permisos.size() != request.getPermisoIds().size()) {
                 Set<Long> encontrados = permisos.stream().map(Permiso::getId).collect(Collectors.toSet());
@@ -113,8 +113,9 @@ public class PlantillaService {
         if (!p.getNombre().equals(request.getNombre()) && plantillaRepository.existsByTenantIdAndNombre(tenantId, request.getNombre())) {
             throw new IllegalArgumentException("Ya existe una plantilla con nombre '" + request.getNombre() + "'");
         }
-        // Si se cambian permisos, validar anti-escalación
-        if (request.getPermisoIds() != null) {
+        // Si se cambian permisos, validar catálogo + anti-escalación
+        if (request.getPermisoIds() != null && !request.getPermisoIds().isEmpty()) {
+            validarCatalogoTenant(tenantId, request.getPermisoIds());
             validationService.validarAntiEscalacion(adminUserId, request.getPermisoIds());
         }
         p.setNombre(request.getNombre());
@@ -160,6 +161,7 @@ public class PlantillaService {
         if (!p.getTenant().getId().equals(tenantId)) {
             throw new ResourceNotFoundException("Plantilla no pertenece a tu tenant");
         }
+        validarCatalogoTenant(tenantId, permisoIds);
         validationService.validarAntiEscalacion(adminUserId, permisoIds);
         setCurrentAdminId(adminUserId);
         for (Long pid : permisoIds) {
@@ -191,6 +193,23 @@ public class PlantillaService {
         Plantilla p = plantillaRepository.findByIdWithPermisos(plantillaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + plantillaId));
         return toResponseDto(p);
+    }
+
+    private void validarCatalogoTenant(Long tenantId, Set<Long> permisoIds) {
+        if (permisoIds == null || permisoIds.isEmpty()) return;
+        Tenant t = entityManager.find(Tenant.class, tenantId);
+        if (t != null && "system".equalsIgnoreCase(t.getCodigo())) return;
+        @SuppressWarnings("unchecked")
+        List<Number> rows = entityManager.createNativeQuery("SELECT permiso_id FROM tenant_permiso WHERE tenant_id = :tid")
+                .setParameter("tid", tenantId).getResultList();
+        Set<Long> asignados = rows.stream().map(Number::longValue).collect(Collectors.toSet());
+        if (asignados.isEmpty()) {
+            throw new IllegalArgumentException("Tenant sin catálogo asignado por Super Admin. Solicita al Super Admin que asigne permisos a tu tenant en /tenants/" + tenantId + "/catalogo");
+        }
+        Set<Long> noAsignados = permisoIds.stream().filter(id -> !asignados.contains(id)).collect(Collectors.toSet());
+        if (!noAsignados.isEmpty()) {
+            throw new IllegalArgumentException("Permisos no asignados a tu tenant por Super Admin: " + noAsignados + ". Disponibles: " + asignados);
+        }
     }
 
     private void evictUsuariosDePlantilla(Long tenantId, Long plantillaId) {

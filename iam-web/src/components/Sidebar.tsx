@@ -51,6 +51,10 @@ export function Sidebar({ modulos, onSelect }: { modulos: Modulo[], onSelect?: (
             <span className="nav-item-icon"><IconTemplate size={18} /></span>
             Plantillas por Tenant
           </NavLink>
+          <NavLink to="/catalogo" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ border: '1px dashed #4f46e5' }}>
+            <span className="nav-item-icon">◈</span>
+            Catálogo por Tenant <span style={{fontSize:'10px', background:'#4f46e5', color:'white', padding:'1px 5px', borderRadius:999}}>SUPER</span>
+          </NavLink>
         </nav>
 
         {/* Dynamic Catalog Navigation */}
@@ -110,7 +114,7 @@ export function Sidebar({ modulos, onSelect }: { modulos: Modulo[], onSelect?: (
           })}
 
           <div className="sidebar-hint" style={{ marginTop: '8px' }}>
-            Los módulos son <b>globales</b>. Submódulos y acciones se generan dinámicamente.
+            <b>SUPER_ADMIN</b> crea el catálogo global y lo <b>asigna</b> a tenants en <code>/catalogo</code>. <b>TENANT_ADMIN</b> solo ve lo asignado y crea plantillas con ello.
           </div>
         </div>
       </div>

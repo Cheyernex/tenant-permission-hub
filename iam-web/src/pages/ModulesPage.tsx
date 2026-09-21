@@ -3,7 +3,9 @@ import type { Modulo } from '../types/iam'
 import { createAccion, createModulo, createSubmodulo } from '../api/modules'
 import { apiFetch } from '../api/client'
 
-export function ModulesPage({ modulos, onReload }: { modulos: Modulo[], onReload: () => void }) {
+export function ModulesPage({ modulos, visibleModulos, onReload, isSuperAdmin }: { modulos: Modulo[], visibleModulos?: Modulo[], onReload: () => void, isSuperAdmin?: boolean }) {
+  const displayModulos = visibleModulos ?? modulos
+  const canWrite = isSuperAdmin ?? true
   const [nombre, setNombre] = useState('')
   const [desc, setDesc] = useState('')
   const [subForm, setSubForm] = useState<{ moduloId: number | null, nombre: string, acc: string }>({ moduloId: null, nombre: '', acc: '' })
@@ -82,21 +84,25 @@ export function ModulesPage({ modulos, onReload }: { modulos: Modulo[], onReload
 
   return (
     <div className="page">
-      <h1>Módulos — persistencia real PostgreSQL (SUPER_ADMIN escribe)</h1>
-      <p className="muted">Cada creación hace <code>POST /api/v1/modulos</code> / <code>/submodulos</code> / <code>/acciones</code> con <code>Authorization: Bearer &lt;JWT tenant_id&gt;</code>. Sin mocks. <b>Si ves 403, inicia sesión como SUPER_ADMIN.</b></p>
+      <h1>Módulos — persistencia real PostgreSQL</h1>
+      <p className="muted">
+        {canWrite ? <><b>SUPER_ADMIN</b> — crea el catálogo global (<code>POST /api/v1/modulos</code>).</> : <><b>TENANT_ADMIN</b> — solo lectura de lo asignado por Super Admin. Ve a <code>Plantillas</code> para crear con esos permisos.</>}
+        {!canWrite && <span> Para gestionar catálogo, entra como <code>superadmin@system.local</code>.</span>}
+      </p>
       {msg && <div className="callout" style={msgType==='err' ? {borderColor:'#f87171', color:'#fecaca'} : {}}>{msg}</div>}
-      <div className="toolbar">
+      {!canWrite && <div className="callout" style={{borderColor:'#f59e0b'}}>Solo lectura — {displayModulos.length} módulos asignados a tu tenant. El Super Admin los asignó en <code>/catalogo</code>.</div>}
+      {canWrite && <div className="toolbar">
         <input placeholder="Nombre módulo (ej: Reportes)" value={nombre} onChange={e => setNombre(e.target.value)} disabled={busy} />
         <input placeholder="Descripción" value={desc} onChange={e => setDesc(e.target.value)} disabled={busy} />
         <button className="btn primary" onClick={handleAddModulo} disabled={busy}>+ Módulo</button>
-      </div>
+      </div>}
 
       <div className="grid">
-        {modulos.map(m => (
+        {displayModulos.map(m => (
           <div key={m.id} className={`mod-card ${!m.activo ? 'inactive' : ''}`}>
             <div className="mod-card-head">
               <b>{m.nombre}</b> <span className="muted">#{m.id}</span>
-              <button className="btn sm" onClick={() => handleToggle(m.id)} disabled={busy}>{m.activo ? 'Desactivar' : 'Activar'}</button>
+              {canWrite && <button className="btn sm" onClick={() => handleToggle(m.id)} disabled={busy}>{m.activo ? 'Desactivar' : 'Activar'}</button>}
             </div>
             <div className="muted sm">{m.descripcion || '—'} — {m.activo ? 'activo' : 'inactivo (soft delete V1)'} </div>
 
@@ -105,32 +111,32 @@ export function ModulesPage({ modulos, onReload }: { modulos: Modulo[], onReload
                 <div key={s.id} className={`sub-card ${!s.activo ? 'inactive' : ''}`}>
                   <div className="sub-head">
                     <b>{s.nombre}</b> <span className="badge">{s.acciones.length} acc.</span>
-                    <button className="btn sm ghost" onClick={() => handleToggle(m.id, s.id)} disabled={busy}>{s.activo ? 'off' : 'on'}</button>
+                    {canWrite && <button className="btn sm ghost" onClick={() => handleToggle(m.id, s.id)} disabled={busy}>{s.activo ? 'off' : 'on'}</button>}
                   </div>
                   <div className="chips">
                     {s.acciones.map(a => (
-                      <span key={a.id} className={`chip ${!a.activo ? 'off' : ''}`} onClick={() => handleToggle(m.id, s.id, a.id)} title="Click para toggle (SUPER_ADMIN)">
+                      <span key={a.id} className={`chip ${!a.activo ? 'off' : ''}`} onClick={() => canWrite && handleToggle(m.id, s.id, a.id)} title={canWrite ? "Click para toggle (SUPER_ADMIN)" : "Solo lectura (asignado por Super Admin)"}>
                         {a.nombre}
                       </span>
                     ))}
                   </div>
-                  <div className="inline-form">
+                  {canWrite && <div className="inline-form">
                     <input placeholder="Nueva acción (VER...)" value={accionForm.subId === s.id ? accionForm.nombre : ''} onFocus={() => setAccionForm({ subId: s.id, nombre: '' })} onChange={e => setAccionForm({ subId: s.id, nombre: e.target.value })} disabled={busy} />
                     <button className="btn sm" onClick={() => handleAddAccion(s.id)} disabled={busy || accionForm.subId !== s.id}>+ Acción</button>
-                  </div>
+                  </div>}
                 </div>
               ))}
             </div>
 
-            <div className="inline-form">
+            {canWrite && <div className="inline-form">
               <input placeholder="Submódulo (ej: Dashboard)" value={subForm.moduloId === m.id ? subForm.nombre : ''} onFocus={() => setSubForm({ ...subForm, moduloId: m.id })} onChange={e => setSubForm({ ...subForm, nombre: e.target.value, moduloId: m.id })} disabled={busy} />
               <input placeholder="Acciones coma (CREAR,VER)" value={subForm.moduloId === m.id ? subForm.acc : ''} onChange={e => setSubForm({ ...subForm, acc: e.target.value })} disabled={busy} />
               <button className="btn sm primary" onClick={handleAddSubmodulo} disabled={busy || subForm.moduloId !== m.id}>+ Submódulo</button>
-            </div>
+            </div>}
           </div>
         ))}
       </div>
-      {modulos.length === 0 && <div className="callout">Sin módulos. Crea uno — quedará persistido y visible para todos los tenants (global).</div>}
+      {displayModulos.length === 0 && <div className="callout">{canWrite ? "Sin módulos. Crea uno — quedará persistido global y luego asigna a tenants en /catalogo." : "Sin módulos asignados. Pide al Super Admin que asigne catálogo a tu tenant en /catalogo."}</div>}
     </div>
   )
 }

@@ -2,6 +2,7 @@ package com.cmtdevsolutions.iam.common.service;
 
 import com.cmtdevsolutions.iam.common.dto.PermisoResponse;
 import com.cmtdevsolutions.iam.common.entity.Permiso;
+import com.cmtdevsolutions.iam.common.entity.Tenant;
 import com.cmtdevsolutions.iam.common.entity.Usuario;
 import com.cmtdevsolutions.iam.common.entity.UsuarioPermiso;
 import com.cmtdevsolutions.iam.common.entity.UsuarioPermisoId;
@@ -44,6 +45,7 @@ public class UsuarioPermisoService {
         Usuario target = usuarioRepository.findById(targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario destino no encontrado: " + targetUserId));
         validationService.validarMismoTenant(adminTenantId, target);
+        validarCatalogoTenant(adminTenantId, permisoIds);
         validationService.validarAntiEscalacion(adminUserId, permisoIds);
 
         // validar que los permisoIds existen en catálogo global
@@ -109,5 +111,22 @@ public class UsuarioPermisoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + targetUserId));
         validationService.validarMismoTenant(adminTenantId, target);
         return cacheService.getEffectivePermisosCached(adminTenantId, targetUserId);
+    }
+
+    private void validarCatalogoTenant(Long tenantId, Set<Long> permisoIds) {
+        if (permisoIds == null || permisoIds.isEmpty()) return;
+        Tenant t = entityManager.find(Tenant.class, tenantId);
+        if (t != null && "system".equalsIgnoreCase(t.getCodigo())) return;
+        @SuppressWarnings("unchecked")
+        List<Number> rows = entityManager.createNativeQuery("SELECT permiso_id FROM tenant_permiso WHERE tenant_id = :tid")
+                .setParameter("tid", tenantId).getResultList();
+        Set<Long> asignados = rows.stream().map(Number::longValue).collect(Collectors.toSet());
+        if (asignados.isEmpty()) {
+            throw new IllegalArgumentException("Tenant sin catálogo asignado por Super Admin. Solicita asignación en /tenants/" + tenantId + "/catalogo");
+        }
+        Set<Long> noAsignados = permisoIds.stream().filter(id -> !asignados.contains(id)).collect(Collectors.toSet());
+        if (!noAsignados.isEmpty()) {
+            throw new IllegalArgumentException("Permisos no asignados a tu tenant: " + noAsignados);
+        }
     }
 }
