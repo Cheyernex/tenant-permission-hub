@@ -95,9 +95,12 @@ curl http://localhost:9000/.well-known/openid-configuration
 | **Submódulos** | `POST` | `/modulos/{moduloId}/submodulos` | `SUPER_ADMIN` | `UK(modulo,nombre)` |
 | | `GET` | `/modulos/{moduloId}/submodulos`, `/submodulos/{id}` | `SUPER_ADMIN`/`TENANT_ADMIN` | — |
 | | `PATCH` | `/submodulos/{id}`, `/{id}/desactivar|activar` | `SUPER_ADMIN` | — |
-| **Acciones** | `POST` | `/submodulos/{subId}/acciones` | `SUPER_ADMIN` | `UK(submodulo,nombre)` — no es enum global |
+| **Acciones** | `POST` | `/submodulos/{subId}/acciones` | `SUPER_ADMIN` | `UK(submodulo,nombre)` — no es enum global; **auto-crea `permiso(submodulo,accion)`** (`AccionService.java:36`) para que aparezca en catálogo |
 | | `GET` | `/submodulos/{subId}/acciones` | `SUPER_ADMIN`/`TENANT_ADMIN` | — |
 | | `PATCH` | `/acciones/{id}`, `/{id}/desactivar|activar` | `SUPER_ADMIN` | — |
+| **Catálogo por Tenant (Fase 3b)** | `POST` | `/tenants/{tenantId}/catalogo/permisos` `{permisoIds}` | `SUPER_ADMIN` | Asigna qué `permisos` ve el tenant (`tenant_permiso`) |
+| | `GET` | `/tenants/{tenantId}/catalogo/permisos` | `SUPER_ADMIN`/`TENANT_ADMIN` | Catálogo asignado (Tenant Admin ve filtrado) |
+| | `DELETE` | `/tenants/{tenantId}/catalogo/permisos/{permisoId}` | `SUPER_ADMIN` | — |
 | **Usuarios** | `POST` | `/usuarios` | `TENANT_ADMIN` | `UK(tenant,email)` |
 | | `GET` | `/usuarios`, `/usuarios/{id}`, `/usuarios/admins` | `TENANT_ADMIN` | `WHERE tenant_id = :jwt` |
 | | `PATCH` | `/usuarios/{id}`, `/{id}/desactivar|activar|password` | `TENANT_ADMIN` | — |
@@ -174,6 +177,7 @@ curl -H "Authorization: Bearer <access_token>" http://localhost:8080/api/v1/usua
 - `plantilla_permiso(plantilla_id FK, permiso_id FK) PK(compuesta)` — `plantilla.tenant_id` implícito
 - `usuario_permiso(usuario_id FK, permiso_id FK) PK` — `usuario.tenant_id` implícito
 - `usuario_plantilla(usuario_id FK, plantilla_id FK) PK` — **CHECK vía trigger** `usuario.tenant_id == plantilla.tenant_id`
+- `tenant_permiso(tenant_id FK, permiso_id FK) PK` — **asignación Super Admin → Tenant** (`V6__tenant_catalogo_asignacion.sql:1`); Tenant Admin solo ve/usa permisos aquí asignados
 
 **Constraints que refuerzan aislamiento (Fase 5):**
 
@@ -187,8 +191,10 @@ curl -H "Authorization: Bearer <access_token>" http://localhost:8080/api/v1/usua
 
 - **Efectivos:** `PERMISOS_EFECTIVOS(u) = DIRECTOS(u) ∪ ⋃ PERMISOS_DE_PLANTILLA(p)` (`PermissionResolutionService.java:18` query única `SELECT ... UNION` + `DISTINCT`, sin N+1).
 - **Cache:** `PermissionCacheService.java:14` `eff_perms:{tenant}:{user}` JSON `List<PermisoResponse>` TTL 10m (`StringRedisTemplate` + `ObjectMapper`); `Optional` para run sin Redis (dev/test). Invalidación en `UsuarioPermisoService:55`, `UsuarioPlantillaService:46`, `PlantillaService:28` (`evict` + `evictByUserIds` vía `SELECT usuario_id FROM usuario_plantilla WHERE plantilla_id=:pid`).
+- **Catálogo por tenant:** `TenantCatalogoService.java:14` + `TenantPermisoRepository:7` (`tenant_permiso`). `PlantillaService:55` y `UsuarioPermisoService:44` validan `validarCatalogoTenant(tenantId, permisoIds)` → `400` si el permiso no fue asignado por Super Admin (bypass para `system`).
 - **8a Anti-escalación:** `PermissionValidationService:13` `validarAntiEscalacion(adminId, permisoIds)` = `permisoIds ⊆ getEffectivePermisoIds(adminId)` else `PrivilegeEscalationException` (403). Reforzado por trigger DB.
 - **8b Aislamiento:** `validarMismoTenant(adminTenantId, target)` + trigger/RLS; `TenantContextHolder.java:7` ThreadLocal + `TenantContextFilter.java:22` extrae `tenant_id` del JWT.
+- **Acción→Permiso:** `AccionService.java:36` al crear `Accion` auto-crea `Permiso(submodulo,accion)` si no existe, para que el Submódulo recién creado ya tenga permisos asignables y aparezca en `TenantCatalogoPage`.
 - **Tenant del request:** nunca del body/query — `SecurityUtils.java:7` `getCurrentTenantId()/getCurrentUserId()` desde `JwtAuthenticationToken`.
 
 ---
@@ -210,13 +216,15 @@ curl -H "Authorization: Bearer <access_token>" http://localhost:8080/api/v1/usua
 
 ## 9) UI Web — Sidebar Dinámico (`iam-web/`)
 
-`Vite` proxy `/api → :8080`, `/oauth2 → :9000`. `Sidebar.tsx:7` genera módulos/submódulos dinámicamente desde `GET /api/v1/modulos` (fallback `seedModulos.ts:7` idéntico a `V1`).
+`Vite` proxy `/api → :8080`, `/oauth2|/dev → :9000`. `Sidebar.tsx:7` genera módulos/submódulos dinámicamente:
+- **SUPER_ADMIN** ve todo el catálogo global; **TENANT_ADMIN** solo ve lo asignado en `tenant_permiso` (filtrado en `App.tsx:22` vía `GET /tenants/{tenantId}/catalogo/permisos`).
 
 - **Dashboard** — contadores + callout sidebar dinámico
-- **Módulos** — CRUD Módulos (global, SUPER_ADMIN), Submódulos/Acciones, soft-delete `activo` toggle. Crear aquí aparece al instante en sidebar.
-- **Usuarios** — por tenant, asignación directa con preview `UNION` efectivos
-- **Plantillas** — crear por tenant (`UK(tenant,nombre)`) con `permisoIds` validados, edición retroactiva
-- **Login** — mock JWT `tenantCodigo:email` + `role` (prod: `POST /oauth2/token`)
+- **Módulos** — `SUPER_ADMIN` CRUD global (persistencia real `POST /modulos`); `TENANT_ADMIN` solo lectura del catálogo asignado (`ModulesPage.tsx:7` `isSuperAdmin` → oculta botones)
+- **Catálogo por Tenant** (`TenantCatalogoPage.tsx:14` solo `SUPER_ADMIN`) — `GET /tenants`, selector tenant, checkboxes `Submódulo:Acción` (`POST /tenants/{id}/catalogo/permisos`)
+- **Usuarios** — por tenant, asignación directa con preview `UNION` efectivos (valida `tenant_permiso`)
+- **Plantillas** — crear por tenant (`UK(tenant,nombre)`) con `permisoIds` validados contra `tenant_permiso` + `anti-escalación`, edición retroactiva
+- **Login** — `POST http://localhost:9000/dev/token` (JWT real firmado, `tenant_id` + `permissions` vía `PermissionCacheService`, ya no `btoa` mock)
 
 ```bash
 npm --prefix iam-web install && npm --prefix iam-web run dev # :5173

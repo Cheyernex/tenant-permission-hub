@@ -30,17 +30,14 @@ function AppInner() {
       if (!isSuperAdmin && tenantId) {
         try {
           const asignados: any[] = await apiFetch(`/api/v1/tenants/${tenantId}/catalogo/permisos`)
-          const ids = new Set(asignados.map((p:any)=>p.id))
-          // Filtrar módulos/submódulos que tengan al menos un permiso asignado
-          // Como no tenemos mapeo permisoId real vs synthetic, filtramos por existencia de ids en asignados
-          // Si el backend usa ids reales, esta lógica funciona; si está vacío, mostrar todo con hint
-          if (ids.size > 0) {
-            // Para demo con ids sintéticos, no filtrar si ids son reales y no coinciden con sintéticos
-            // Se deja pasar todo pero el backend validará al crear plantillas
-            setFiltered(null)
-          } else {
-            setFiltered(null)
-          }
+          const permisoIds = new Set(asignados.map((p: any) => p.id))
+          // Filtrar módulos que tengan al menos un submódulo con acción asignada al tenant
+          const modulosConPermiso = list.filter(m =>
+            m.submodulos.some(s =>
+              s.acciones.some(a => permisoIds.has(a.id))
+            )
+          )
+          setFiltered(modulosConPermiso.length > 0 ? modulosConPermiso : null)
         } catch { setFiltered(null) }
       } else {
         setFiltered(null)

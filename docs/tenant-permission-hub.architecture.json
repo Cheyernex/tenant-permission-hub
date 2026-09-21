@@ -2,30 +2,35 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Tenant Permission Hub — IAM Modular (Fases 1-5)",
+    "title": "Tenant Permission Hub — IAM Modular (Fases 1-5 + V6 Catálogo)",
     "quality_profile": "showcase"
   },
   "components": [
-    { "id": "client", "type": "external", "label": "Admin / SPA", "sublabel": "TENANT_ADMIN · SUPER_ADMIN", "pos": [30, 260], "size": [130, 64] },
-    { "id": "auth", "type": "backend", "label": "Auth Server :9000", "sublabel": "Spring Authorization Server", "pos": [230, 110], "size": [150, 66] },
+    { "id": "client", "type": "external", "label": "Admin / SPA :5173", "sublabel": "SUPER_ADMIN ↔ TENANT_ADMIN", "pos": [30, 260], "size": [135, 64] },
+    { "id": "auth", "type": "backend", "label": "Auth Server :9000", "sublabel": "JWT tenant_id+permissions", "pos": [230, 110], "size": [150, 66] },
     { "id": "resource", "type": "backend", "label": "Resource Server :8080", "sublabel": "REST + Security", "pos": [230, 260], "size": [150, 66] },
-    { "id": "common", "type": "backend", "label": "iam-common", "sublabel": "10 Entities · Repos · Services", "pos": [230, 410], "size": [150, 66] },
+    { "id": "common", "type": "backend", "label": "iam-common", "sublabel": "11 Entities · V6 tenant_permiso", "pos": [230, 430], "size": [155, 66] },
     { "id": "filter", "type": "security", "label": "TenantContextFilter", "sublabel": "JWT → tenant_id", "pos": [470, 260], "size": [150, 66] },
-    { "id": "validation", "type": "security", "label": "PermissionValidation", "sublabel": "Anti-escalación + Aislamiento", "pos": [470, 410], "size": [155, 66] },
-    { "id": "cache", "type": "database", "label": "Redis 7", "sublabel": "eff_perms TTL 10m", "pos": [710, 150], "size": [135, 64] },
-    { "id": "postgres", "type": "database", "label": "PostgreSQL 16", "sublabel": "Flyway V1-V4 · RLS · Triggers", "pos": [710, 310], "size": [145, 70] }
+    { "id": "validation", "type": "security", "label": "PermissionValidation", "sublabel": "Anti-escalación + Catálogo", "pos": [470, 430], "size": [160, 66] },
+    { "id": "catalogo", "type": "security", "label": "TenantCatalogo", "sublabel": "SUPER_ADMIN → tenant_permiso", "pos": [470, 110], "size": [155, 66] },
+    { "id": "cache", "type": "database", "label": "Redis 7", "sublabel": "eff_perms TTL 10m", "pos": [710, 110], "size": [135, 64] },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL 16", "sublabel": "Flyway V1-V6 · RLS · Triggers", "pos": [710, 310], "size": [150, 70] }
   ],
   "boundaries": [
-    { "kind": "region", "label": "Docker Compose", "wraps": ["auth", "resource", "common", "filter", "validation", "cache", "postgres"] }
+    { "kind": "region", "label": "Docker Compose", "wraps": ["auth", "resource", "common", "filter", "validation", "catalogo", "cache", "postgres"] },
+    { "kind": "security-group", "label": "Global Catalog — Modulo/Submodulo/Accion (SUPER_ADMIN)", "wraps": ["common", "catalogo"] },
+    { "kind": "security-group", "label": "Tenant Scope — tenant_permiso + Plantillas (TENANT_ADMIN)", "wraps": ["filter", "validation"] }
   ],
   "connections": [
     { "id": "c1", "from": "client", "to": "auth", "label": "OAuth2 token", "labelAt": [140, 210] },
     { "id": "c2", "from": "client", "to": "resource", "label": "Bearer JWT", "labelAt": [140, 340] },
-    { "id": "c3", "from": "auth", "to": "postgres", "label": "JPA", "via": [[380, 100], [860, 100], [860, 345]], "labelAt": [620, 90] },
+    { "id": "c3", "from": "auth", "to": "postgres", "label": "JPA", "via": [[380, 60], [860, 60], [860, 345]], "labelAt": [700, 50] },
     { "id": "c4", "from": "resource", "to": "filter", "label": "JWT" },
     { "id": "c5", "from": "filter", "to": "validation", "label": "tenantId", "fromSide": "bottom", "toSide": "top" },
-    { "id": "c6", "from": "validation", "to": "postgres", "label": "UNION + SET LOCAL", "labelAt": [560, 490] },
-    { "id": "c7", "from": "validation", "to": "cache", "label": "GET/EVICT", "via": [[640, 443], [640, 182]], "labelAt": [520, 60] },
-    { "id": "c9", "from": "resource", "to": "cache", "label": "HIT/MISS", "via": [[380, 240], [610, 240], [610, 182]], "labelAt": [500, 250] }
+    { "id": "c6", "from": "validation", "to": "postgres", "label": "UNION + SET LOCAL", "labelAt": [560, 510] },
+    { "id": "c7", "from": "validation", "to": "cache", "label": "GET/EVICT", "via": [[620, 443], [620, 100], [710, 100], [710, 142]], "labelAt": [520, 90] },
+    { "id": "c8", "from": "catalogo", "to": "postgres", "label": "tenant_permiso V6", "via": [[625, 130], [680, 130], [680, 310]], "labelAt": [640, 120] },
+    { "id": "c9", "from": "resource", "to": "cache", "label": "HIT/MISS", "via": [[420, 293], [420, 182], [650, 182], [650, 142]], "labelAt": [500, 150] },
+    { "id": "c10", "from": "common", "to": "postgres", "label": "11 Entities", "via": [[305, 520], [640, 520]] }
   ]
 }

@@ -3,9 +3,11 @@ package com.cmtdevsolutions.iam.common.service;
 import com.cmtdevsolutions.iam.common.dto.AccionRequest;
 import com.cmtdevsolutions.iam.common.dto.AccionResponse;
 import com.cmtdevsolutions.iam.common.entity.Accion;
+import com.cmtdevsolutions.iam.common.entity.Permiso;
 import com.cmtdevsolutions.iam.common.entity.Submodulo;
 import com.cmtdevsolutions.iam.common.exception.ResourceNotFoundException;
 import com.cmtdevsolutions.iam.common.repository.AccionRepository;
+import com.cmtdevsolutions.iam.common.repository.PermisoRepository;
 import com.cmtdevsolutions.iam.common.repository.SubmoduloRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +25,7 @@ public class AccionService {
 
     private final AccionRepository accionRepository;
     private final SubmoduloRepository submoduloRepository;
+    private final PermisoRepository permisoRepository;
 
     @Transactional
     public AccionResponse crear(Long submoduloId, AccionRequest request) {
@@ -41,6 +44,15 @@ public class AccionService {
                 .build();
 
         accion = accionRepository.save(accion);
+
+        // Crear el permiso atómico Submódulo+Acción si no existe (para que aparezca en catálogo y plantillas)
+        if (!permisoRepository.existsBySubmoduloIdAndAccionId(submodulo.getId(), accion.getId())) {
+            permisoRepository.save(Permiso.builder()
+                    .submodulo(submodulo)
+                    .accion(accion)
+                    .build());
+        }
+
         return toResponse(accion);
     }
 
