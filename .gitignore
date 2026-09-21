@@ -31,6 +31,10 @@ docker-compose.override.yml
 application-local.yml
 application-docker.yml
 
+# Frontend
+iam-web/node_modules/
+iam-web/dist/
+
 # Maven wrapper
 .mvn/
 mvnw

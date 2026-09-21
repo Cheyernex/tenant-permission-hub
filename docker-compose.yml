@@ -66,7 +66,7 @@ services:
       SPRING_DATASOURCE_USERNAME: iam_user
       SPRING_DATASOURCE_PASSWORD: iam_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_ENABLED: "false"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://auth-server:9000
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://auth-server:9000/oauth2/jwks
     depends_on:
@@ -80,6 +80,22 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  web:
+    build:
+      context: ./iam-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: http://localhost:8080
+        VITE_AUTH_BASE: http://localhost:9000
+    container_name: iam-web
+    ports:
+      - "5173:80"
+    depends_on:
+      resource-server:
+        condition: service_healthy
+      auth-server:
+        condition: service_healthy
 
 volumes:
   postgres_data:

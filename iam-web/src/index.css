@@ -1,0 +1,73 @@
+:root{--bg:#0b0e14;--panel:#111827;--panel2:#1f2937;--border:#232c3d;--text:#e5e7eb;--muted:#9ca3af;--accent:#60a5fa;--accent2:#34d399;--danger:#f87171}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+a{color:var(--accent)}code{background:#1e293b;padding:2px 6px;border-radius:6px;font-family:JetBrains Mono,monospace;font-size:12px}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:300px;background:#0f172a;border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:auto}
+.sidebar-brand{display:flex;gap:12px;padding:20px;border-bottom:1px solid var(--border)}
+.brand-mark{width:36px;height:36px;background:var(--accent);color:#0b0e14;display:grid;place-items:center;border-radius:10px;font-weight:700}
+.brand-title{font-weight:700} .brand-sub{font-size:12px;color:var(--muted)}
+.nav-section{padding:14px 12px;border-bottom:1px solid #111827}
+.nav-label{font-size:11px;letter-spacing:.08em;color:var(--muted);margin:6px 8px;display:flex;justify-content:space-between;align-items:center}
+.nav-item{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;margin:4px 0}
+.nav-item.active,.nav-item:hover{background:var(--panel2)}
+.modulo-group{margin:6px 0}
+.modulo-head{width:100%;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);cursor:pointer}
+.modulo-name{flex:1;text-align:left;font-weight:600}
+.modulo-count{background:#1e293b;border-radius:999px;padding:2px 8px;font-size:12px}
+.chev{color:var(--muted)}
+.submodulo-list{padding:8px 0 8px 18px;display:grid;gap:6px}
+.submodulo-item{width:100%;text-align:left;background:transparent;border:1px dashed var(--border);border-radius:8px;padding:7px 10px;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:center}
+.submodulo-item:hover{border-color:var(--accent)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent2)}
+.accion-count{margin-left:auto;font-size:11px;color:var(--muted)}
+.submodulo-add{width:100%;background:transparent;border:1px dashed #334155;border-radius:8px;padding:6px;color:var(--muted);cursor:pointer}
+.submodulo-add:hover{color:var(--text);border-color:var(--accent)}
+.sidebar-hint{font-size:11px;color:var(--muted);padding:10px 8px;line-height:1.4}
+.sidebar-footer{margin-top:auto;padding:12px;border-top:1px solid var(--border)}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted)}
+.legend-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.legend-dot.tenant{background:var(--accent2)}
+.main{flex:1;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);background:rgba(17,24,39,.6);backdrop-filter:blur(6px);position:sticky;top:0}
+.topbar-title{font-weight:700}
+.topbar-sub{font-size:12px;color:var(--muted);margin-left:10px}
+.user-chip{font-size:12px;background:var(--panel2);border:1px solid var(--border);padding:6px 10px;border-radius:999px}
+.content{padding:22px;max-width:1200px;width:100%}
+.page h1{margin:0 0 8px 0;font-size:22px}
+.muted{color:var(--muted)} .sm{font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+.card-k{font-size:28px;font-weight:800} .card-v{color:var(--muted);font-size:12px}
+.callout{background:#0f172a;border:1px solid var(--border);border-radius:10px;padding:12px;margin:14px 0;font-size:13px}
+.toolbar{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.toolbar input, .inline-form input, label input, label select{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--text)}
+.btn{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;cursor:pointer}
+.btn.primary{background:var(--accent);color:#0b0e14;border-color:var(--accent);font-weight:600}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 8px;font-size:12px}
+.btn.block{width:100%;margin-top:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.mod-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
+.mod-card.inactive{opacity:.6}
+.mod-card-head{display:flex;gap:8px;align-items:center}
+.sub-grid{display:grid;gap:8px;margin:10px 0}
+.sub-card{background:#0b1220;border:1px solid var(--border);border-radius:10px;padding:10px}
+.sub-card.inactive{opacity:.5}
+.sub-head{display:flex;gap:8px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{background:#1e293b;border:1px solid var(--border);padding:5px 8px;border-radius:999px;font-size:12px;cursor:pointer}
+.chip.on{background:var(--accent);color:#0b0e14;border-color:var(--accent)}
+.chip.off{opacity:.5}
+.chip.check{display:flex;gap:6px;align-items:center}
+.inline-form{display:flex;gap:6px;margin-top:8px}
+.split{display:grid;grid-template-columns:300px 1fr;gap:12px;margin-top:12px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
+.list-item{width:100%;text-align:left;background:transparent;border:1px solid var(--border);border-radius:8px;padding:10px;margin:6px 0;cursor:pointer;color:var(--text)}
+.list-item.active{border-color:var(--accent);background:var(--panel2)}
+.check-row{display:flex;gap:8px;align-items:center;margin:8px 0}
+.badge{background:var(--accent);color:#0b0e14;border-radius:999px;padding:2px 7px;font-size:11px;font-weight:700}
+.login-wrap{min-height:100vh;display:grid;place-items:center;background:radial-gradient(600px 400px at 20% 10%, #1e293b, transparent), var(--bg)}
+.login-card{width:420px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px}
+.login-card label{display:grid;gap:6px;margin:10px 0;font-size:13px}
+.badge{font-size:11px}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.sidebar{width:260px}}
