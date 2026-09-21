@@ -10,37 +10,50 @@ export function ModulesPage({ modulos, onReload }: { modulos: Modulo[], onReload
   const [accionForm, setAccionForm] = useState<{ subId: number | null, nombre: string }>({ subId: null, nombre: '' })
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [msgType, setMsgType] = useState<'ok'|'err'>('ok')
 
   const handleAddModulo = async () => {
     if (!nombre.trim()) return
-    setBusy(true); setMsg(null)
+    setBusy(true); setMsg(null); setMsgType('ok')
     try {
       await createModulo({ nombre: nombre.trim(), descripcion: desc, orden: modulos.length + 1 })
-      setNombre(''); setDesc(''); await onReload(); setMsg('Módulo creado y persistido en PostgreSQL.')
-    } catch (e: any) { setMsg('Error: ' + e.message) } finally { setBusy(false) }
+      setNombre(''); setDesc(''); await onReload(); setMsg('✓ Módulo creado y persistido en PostgreSQL (verifica Network → 201).'); setMsgType('ok')
+    } catch (e: any) {
+      const m = e.message || ''
+      if (m.includes('403') || m.includes('FORBIDDEN') || m.includes('ACCESS_DENIED')) {
+        setMsg('✗ 403 — Solo SUPER_ADMIN puede crear módulos globales. Inicia sesión como superadmin@system.local / system / SUPER_ADMIN.'); setMsgType('err')
+      } else setMsg('✗ Error: ' + m); setMsgType('err')
+    } finally { setBusy(false) }
   }
 
   const handleAddSubmodulo = async () => {
     if (!subForm.moduloId || !subForm.nombre.trim()) return
-    setBusy(true); setMsg(null)
+    setBusy(true); setMsg(null); setMsgType('ok')
     try {
       const created = await createSubmodulo(subForm.moduloId, { nombre: subForm.nombre.trim(), orden: 0 }) as any
-      // crear acciones iniciales si se indicaron (coma separada)
       const accs = subForm.acc.split(',').map(s => s.trim()).filter(Boolean)
       for (const a of accs) {
         await createAccion(created.id, { nombre: a.toUpperCase() })
       }
-      setSubForm({ moduloId: null, nombre: '', acc: '' }); await onReload(); setMsg('Submódulo creado.')
-    } catch (e: any) { setMsg('Error submodulo: ' + e.message) } finally { setBusy(false) }
+      setSubForm({ moduloId: null, nombre: '', acc: '' }); await onReload(); setMsg('✓ Submódulo creado y persistido.'); setMsgType('ok')
+    } catch (e: any) {
+      const m = e.message || ''
+      if (m.includes('403')) { setMsg('✗ 403 — Solo SUPER_ADMIN puede crear submódulos. Cambia a superadmin@system.local'); setMsgType('err') }
+      else { setMsg('✗ Error submodulo: ' + m); setMsgType('err') }
+    } finally { setBusy(false) }
   }
 
   const handleAddAccion = async (subId: number) => {
     if (!accionForm.nombre.trim()) return
-    setBusy(true)
+    setBusy(true); setMsg(null); setMsgType('ok')
     try {
       await createAccion(subId, { nombre: accionForm.nombre.trim().toUpperCase() })
-      setAccionForm({ subId: null, nombre: '' }); await onReload()
-    } catch (e: any) { setMsg('Error acción: ' + e.message) } finally { setBusy(false) }
+      setAccionForm({ subId: null, nombre: '' }); await onReload(); setMsg('✓ Acción creada.'); setMsgType('ok')
+    } catch (e: any) {
+      const m = e.message || ''
+      if (m.includes('403')) setMsg('✗ 403 — Solo SUPER_ADMIN.'); else setMsg('✗ Error acción: ' + m)
+      setMsgType('err')
+    } finally { setBusy(false) }
   }
 
   const handleToggle = async (moduloId: number, subId?: number, accId?: number) => {
@@ -70,8 +83,8 @@ export function ModulesPage({ modulos, onReload }: { modulos: Modulo[], onReload
   return (
     <div className="page">
       <h1>Módulos — persistencia real PostgreSQL (SUPER_ADMIN escribe)</h1>
-      <p className="muted">Cada creación hace <code>POST /api/v1/modulos</code> / <code>/submodulos</code> / <code>/acciones</code> con <code>Authorization: Bearer &lt;JWT tenant_id&gt;</code>. Sin mocks.</p>
-      {msg && <div className="callout">{msg}</div>}
+      <p className="muted">Cada creación hace <code>POST /api/v1/modulos</code> / <code>/submodulos</code> / <code>/acciones</code> con <code>Authorization: Bearer &lt;JWT tenant_id&gt;</code>. Sin mocks. <b>Si ves 403, inicia sesión como SUPER_ADMIN.</b></p>
+      {msg && <div className="callout" style={msgType==='err' ? {borderColor:'#f87171', color:'#fecaca'} : {}}>{msg}</div>}
       <div className="toolbar">
         <input placeholder="Nombre módulo (ej: Reportes)" value={nombre} onChange={e => setNombre(e.target.value)} disabled={busy} />
         <input placeholder="Descripción" value={desc} onChange={e => setDesc(e.target.value)} disabled={busy} />
