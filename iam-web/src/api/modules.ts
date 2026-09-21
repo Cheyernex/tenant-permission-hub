@@ -1,42 +1,32 @@
+import { apiFetch } from './client'
 import type { Modulo } from '../types/iam'
 
-// Datos semilla — idénticos a V1__global_schema.sql para demo sin backend
-export const seedModulos: Modulo[] = [
-  {
-    id: 1, nombre: 'Catalogo', descripcion: 'Gestión de catálogo', orden: 1, activo: true,
-    submodulos: [
-      { id: 1, nombre: 'Productos', descripcion: 'Administración de productos', orden: 1, activo: true, acciones: [
-        { id: 1, nombre: 'CREAR', descripcion: 'Crear productos', activo: true },
-        { id: 2, nombre: 'EDITAR', descripcion: 'Editar productos', activo: true },
-        { id: 3, nombre: 'ELIMINAR', descripcion: 'Eliminar productos', activo: true },
-        { id: 4, nombre: 'VER', descripcion: 'Ver productos', activo: true },
-        { id: 5, nombre: 'EXPORTAR', descripcion: 'Exportar', activo: true },
-      ]},
-      { id: 2, nombre: 'Categorias', orden: 2, activo: true, acciones: [
-        { id: 6, nombre: 'CREAR', activo: true }, { id: 7, nombre: 'EDITAR', activo: true }, { id: 8, nombre: 'VER', activo: true },
-      ]},
-    ]
-  },
-  {
-    id: 2, nombre: 'Pedidos', orden: 2, activo: true,
-    submodulos: [
-      { id: 3, nombre: 'Ordenes', orden: 1, activo: true, acciones: [
-        { id: 12, nombre: 'CREAR', activo: true }, { id: 14, nombre: 'VER', activo: true }, { id: 15, nombre: 'CANCELAR', activo: true },
-      ]},
-      { id: 4, nombre: 'Historial', orden: 2, activo: true, acciones: [
-        { id: 16, nombre: 'VER', activo: true }, { id: 17, nombre: 'EXPORTAR', activo: true },
-      ]},
-    ]
-  },
-  {
-    id: 3, nombre: 'Pagos', orden: 3, activo: true,
-    submodulos: [
-      { id: 5, nombre: 'Transacciones', orden: 1, activo: true, acciones: [
-        { id: 18, nombre: 'VER', activo: true }, { id: 19, nombre: 'REEMBOLSAR', activo: true },
-      ]},
-      { id: 6, nombre: 'Metodos', orden: 2, activo: true, acciones: [
-        { id: 20, nombre: 'CREAR', activo: true }, { id: 22, nombre: 'VER', activo: true },
-      ]},
-    ]
-  },
-]
+export async function fetchModulos(): Promise<Modulo[]> {
+  const data = await apiFetch('/api/v1/modulos?page=0&size=100')
+  const list = Array.isArray(data) ? data : data?.content
+  if (!Array.isArray(list)) throw new Error('Respuesta inesperada de /modulos')
+  return list.map((m: any) => ({
+    ...m,
+    submodulos: (m.submodulos || []).map((s: any) => ({
+      ...s,
+      acciones: s.acciones || [],
+    })),
+  }))
+}
+
+export async function createModulo(payload: { nombre: string, descripcion?: string, orden?: number }) {
+  return apiFetch('/api/v1/modulos', { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export async function createSubmodulo(moduloId: number, payload: { nombre: string, descripcion?: string, orden?: number }) {
+  return apiFetch(`/api/v1/modulos/${moduloId}/submodulos`, { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export async function createAccion(submoduloId: number, payload: { nombre: string, descripcion?: string }) {
+  return apiFetch(`/api/v1/submodulos/${submoduloId}/acciones`, { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export async function toggleModulo(moduloId: number, activo: boolean) {
+  const path = activo ? `/api/v1/modulos/${moduloId}/activar` : `/api/v1/modulos/${moduloId}/desactivar`
+  return apiFetch(path, { method: 'PATCH' })
+}
