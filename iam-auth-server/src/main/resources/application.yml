@@ -1,0 +1,41 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: iam-auth-server
+  datasource:
+    url: jdbc:postgresql://localhost:5432/iam_db
+    username: iam_user
+    password: iam_pass
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+  security:
+    oauth2:
+      authorizationserver:
+        issuer-uri: http://localhost:9000
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+    com.cmtdevsolutions.iam: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

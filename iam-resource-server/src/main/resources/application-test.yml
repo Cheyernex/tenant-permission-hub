@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16:///iam_test
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000
+          jwk-set-uri: http://localhost:9000/oauth2/jwks
+
+logging:
+  level:
+    com.cmtdevsolutions.iam: DEBUG
+    org.hibernate.SQL: DEBUG

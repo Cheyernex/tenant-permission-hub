@@ -1,0 +1,37 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Testcontainers
+.testcontainers/
+
+# Local config
+application-local.yml
+application-docker.yml
+
+# Maven wrapper
+.mvn/
+mvnw
+mvnw.cmd
